@@ -1,0 +1,30 @@
+# =========================================================================
+# Script: El Guardián de la Red
+# Objetivo: Automatizar la verificación de conectividad de un Host
+# =========================================================================
+
+Clear-Host
+Write-Host "=========================================" -ForegroundColor Cyan
+Write-Host "    HERRAMIENTA DE DIAGNÓSTICO DE RED    " -ForegroundColor Cyan
+Write-Host "=========================================" -ForegroundColor Cyan
+
+# 1. Almacenar la entrada del usuario en una variable
+$Objetivo = Read-Host -Prompt "Por favor, ingresa la dirección IP o Dominio a evaluar"
+
+Write-Host "`n[+] Iniciando prueba de conectividad hacia: $Objetivo..." -ForegroundColor Yellow
+
+# 2. Realizar el ping utilizando lógica de control y manejo de errores
+try {
+    # Test-Connection realiza el ping y -Count 2 define el número de paquetes
+    # -ErrorAction Stop fuerza a que cualquier error de red salte al bloque 'catch'
+    $Resultado = Test-Connection -ComputerName $Objetivo -Count 2 -ErrorAction Stop
+
+    # 3. Informar si el equipo respondió con éxito
+    Write-Host "`n[ÉXITO] El host '$Objetivo' respondió correctamente a la solicitud de red. ✅" -ForegroundColor Green
+} 
+catch {
+    # Informar si el equipo no respondió o el dominio no existe
+    Write-Host "`n[ERROR] No se pudo establecer conexión con '$Objetivo'. El host está apagado, inaccesible o no existe. ❌" -ForegroundColor Red
+}
+
+Write-Host "`n=========================================" -ForegroundColor Cyan
