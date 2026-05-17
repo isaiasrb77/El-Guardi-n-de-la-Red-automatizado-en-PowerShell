@@ -1,0 +1,62 @@
+# =========================================================================
+# Script: defensa_ps.ps1
+# Función: Análisis de Servicios No Estándar, Procesos Anómalos, Logs de Acceso y Hardening SMBv1
+# Requisito: Requiere Ejecución con Privilegios de Administrador
+# =========================================================================
+
+# Configuración inicial de entorno seguro (Asegura la ejecución del script actual)
+Set-ExecutionPolicy RemoteSigned -Scope Process -Force
+
+Clear-Host
+Write-Host "=======================================================" -ForegroundColor Cyan
+Write-Host "   AUDITORÍA AVANZADA Y DEFICIT DE PROTOCOLOS (PS)     " -ForegroundColor Cyan
+Write-Host "=======================================================" -ForegroundColor Cyan
+
+# --- PARTE 2: ANÁLISIS FORENSE DE PROCESOS Y SERVICIOS ---
+Write-Host "[+] 1. Filtrando servicios en ejecucion (Excluyendo Microsoft corporativo)..." -ForegroundColor Yellow
+# Excluye servicios comunes que inician con sintaxis de Windows para aislar software de terceros
+$ServiciosNoEstandar = Get-Service | Where-Object { $_.Status -eq "Running" -and $_.Name -notlike "Win*" -and $_.Name -notlike "App*" -and $_.Name -notlike "Sec*" }
+
+Write-Host "[+] 2. Analizando procesos de alto impacto en RAM..." -ForegroundColor Yellow
+# Clasifica y extrae los 10 procesos con mayor Working Set (consumo de memoria física RAM)
+$ProcesosCriticos = Get-Process | Sort-Object -Property WS -Descending | Select-Object -First 10 -Property Name, Id, Description, @{Name="RAM_MB"; Expression={[math]::round($_.WS / 1MB, 2)}}
+
+Write-Host "[+] 3. Extrayendo logs de inicio de sesion exitosos (Event ID 4624)..." -ForegroundColor Yellow
+# Extrae logs de auditoría estrictos de inicio de sesión (Análisis Forense de Accesos)
+$LogsSeguridad = Get-EventLog -LogName Security -InstanceId 4624 -Newest 10
+
+# Consolidación estructurada en una cadena extendida (Pipeline)
+$ReportePS = @"
+=======================================================
+REPORTE DE AUDITORÍA FORENSE AVANZADA (POWERSHELL)
+Fecha de ejecucion: $(Get-Date)
+=======================================================
+
+--- SERVICIOS NO ESTÁNDAR DETECTADOS ---
+$($ServiciosNoEstandar | Format-Table -AutoSize | Out-String)
+
+--- TOP 10 PROCESOS EN CONSUMO DE MEMORIA ---
+$($ProcesosCriticos | Format-Table -AutoSize | Out-String)
+
+--- AUDITORÍA DE EVENTOS DE ACCESO (EVENT ID 4624) ---
+$($LogsSeguridad | Select-Object -Property TimeGenerated, EventID, Message | Format-List | Out-String)
+"@
+
+# Persistencia de datos forenses con codificación universal
+$ReportePS | Out-File -FilePath "evidencia_forense_ps.txt" -Encoding utf8
+
+# --- PARTE 3: HARDENING (DEFENSA ACTIVA) ---
+Write-Host "`n=======================================================" -ForegroundColor Red
+Write-Host "   APLICANDO ENDURECIMIENTO DE PROTOCOLO CORPORATIVO   " -ForegroundColor Red
+Write-Host "=======================================================" -ForegroundColor Red
+
+Write-Host "[+] Desactivando protocolo obsoleto y vulnerable SMBv1..." -ForegroundColor Yellow
+# Deshabilita de forma definitiva la característica opcional SMB1 de manera Online sin forzar reinicio directo
+Disable-WindowsOptionalFeature -Online -FeatureName "SMB1Protocol" -NoRestart -ErrorAction SilentlyContinue
+
+Write-Host "[+] Configurando Execution Policy global del sistema a RemoteSigned..." -ForegroundColor Yellow
+# Sella las directivas locales de la máquina para exigir firmas digitales en scripts remotos
+Set-ExecutionPolicy RemoteSigned -Scope LocalMachine -Force
+
+Write-Host "`n[ÉXITO] Reporte forense generado: evidencia_forense_ps.txt" -ForegroundColor Green
+Write-Host "[ÉXITO] Hardening completado de forma persistente." -ForegroundColor Green
