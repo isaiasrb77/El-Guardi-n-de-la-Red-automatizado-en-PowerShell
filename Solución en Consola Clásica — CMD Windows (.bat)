@@ -1,0 +1,50 @@
+@echo off
+:: =========================================================================
+:: Script: diagnostico.bat
+:: Empresa: TechSolutions RD | Caso: Operación Rescate de Infraestructura
+:: =========================================================================
+title Diagnóstico de Infraestructura - TechSolutions RD
+cls
+
+echo =======================================================
+echo    HERRAMIENTA DE DIAGNÓSTICO EN RED (CMD)
+echo =======================================================
+
+:: --- TAREA 1: VERIFICADOR DE DISPONIBILIDAD DE RED ---
+echo [+] Iniciando barrido de ping a servidores críticos...
+echo === REPORTE DE DISPONIBILIDAD DE RED === > red_status.txt
+echo Fecha y Hora del análisis: %date% %time% >> red_status.txt
+echo ------------------------------------------------------- >> red_status.txt
+
+:: Bucle indexado del .10 al .15 con saltos de 1 en 1
+for /L %%i in (10,1,15) do (
+    set "IP=192.168.1.%%i"
+    
+    :: Se ejecuta 1 solo ping con un tiempo de espera de 800ms
+    ping -n 1 -w 800 192.168.1.%%i >nul
+    
+    :: Evaluación directa del código de retorno (ErrorLevel)
+    if errorlevel 1 (
+        echo IP 192.168.1.%%i - CAÍDA ❌
+        echo IP 192.168.1.%%i - CAÍDA ❌ >> red_status.txt
+    ) else (
+        echo IP 192.168.1.%%i - ACTIVA ✅
+        echo IP 192.168.1.%%i - ACTIVA ✅ >> red_status.txt
+    )
+)
+
+:: --- TAREA 2: AUDITORÍA DE CARGA DEL SISTEMA ---
+echo.
+echo [+] Ejecutando auditoría de consumo de memoria RAM local...
+echo ======================================================= >> log_procesos.txt
+echo EJECUCIÓN DE AUDITORÍA: %date% %time% >> log_procesos.txt
+echo ======================================================= >> log_procesos.txt
+echo PROCESOS CON MAYOR CONSUMO DE MEMORIA: >> log_procesos.txt
+
+:: Filtra las columnas y ordena de forma descendente usando la columna de memoria (carácter 58)
+tasklist /FO TABLE /NH | sort /R /+58 >> log_procesos.txt
+
+echo.
+echo [ÉXITO] Reportes generados: red_status.txt y log_procesos.txt
+echo =======================================================
+pause
