@@ -1,0 +1,60 @@
+# =========================================================================
+# Script: diagnostico.ps1
+# Empresa: TechSolutions RD | Caso: Operación Rescate de Infraestructura
+# =========================================================================
+$Header = @"
+=======================================================
+   HERRAMIENTA DE DIAGNÓSTICO AVANZADA (POWERSHELL)
+=======================================================
+"@
+Clear-Host
+Write-Host $Header -ForegroundColor Cyan
+
+# --- TAREA 1: VERIFICADOR DE DISPONIBILIDAD DE RED ---
+Write-Host "[+] Iniciando barrido de ping orientado a objetos..." -ForegroundColor Yellow
+
+$Subred = "192.168.1."
+$ReporteRed = [System.Collections.Generic.List[string]]::new()
+$ReporteRed.Add("=== REPORTE DE DISPONIBILIDAD DE RED ===")
+$ReporteRed.Add("Fecha y Hora del análisis: $(Get-Date)")
+$ReporteRed.Add("-------------------------------------------------------")
+
+# Generación dinámica del rango e interconexión mediante Pipeline
+10..15 | ForEach-Object {
+    $IP = "$Subred$_"
+    
+    # Evalúa el estado lógico del host directamente
+    if (Test-Connection -ComputerName $IP -Count 1 -Quiet -ErrorAction SilentlyContinue) {
+        $Mensaje = "IP $IP - ACTIVA ✅"
+        Write-Host $Mensaje -ForegroundColor Green
+        $ReporteRed.Add($Mensaje)
+    } else {
+        $Mensaje = "IP $IP - CAÍDA ❌"
+        Write-Host $Mensaje -ForegroundColor Red
+        $ReporteRed.Add($Mensaje)
+    }
+}
+$ReporteRed | Out-File -FilePath "red_status.txt" -Encoding utf8
+
+# --- TAREA 2: AUDITORÍA DE CARGA DEL SISTEMA ---
+Write-Host "`n[+] Ejecutando auditoría de consumo de memoria RAM local..." -ForegroundColor Yellow
+
+$LogHeader = @"
+
+=======================================================
+EJECUCIÓN DE AUDITORÍA: $(Get-Date)
+=======================================================
+PROCESOS CON MAYOR CONSUMO DE MEMORIA:
+"@
+$LogHeader | Add-Content -Path "log_procesos.txt"
+
+# Flujo estructurado: Obtiene procesos, ordena por RAM (Working Set), calcula MB y exporta en modo Append
+Get-Process | 
+    Sort-Object -Property WS -Descending | 
+    Select-Object -First 10 -Property Name, ID, @{Name="WorkingSet_MB"; Expression={[math]::round($_.WS / 1MB, 2)}} | 
+    Format-Table -AutoSize | 
+    Out-String | 
+    Add-Content -Path "log_procesos.txt"
+
+Write-Host "`n[ÉXITO] Reportes actualizados con persistencia orientada a objetos." -ForegroundColor Cyan
+Write-Host "Archivos: red_status.txt y log_procesos.txt" -ForegroundColor Cyan
