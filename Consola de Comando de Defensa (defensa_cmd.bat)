@@ -1,0 +1,54 @@
+@echo off
+:: =========================================================================
+:: Script: defensa_cmd.bat
+:: Función: Auditoría de Red Local, Usuarios y Hardening de Firewall (SMB)
+:: Requisito: Ejecutar como Administrador (Elevated Privileges)
+:: =========================================================================
+title Script de Defensa Activa - CMD
+cls
+
+echo =======================================================
+echo    EJECUTANDO AUDITORÍA DE SEGURIDAD LOCAL (CMD)
+echo =======================================================
+
+:: --- PARTE 1: ANÁLISIS DE SUPERFICIE DE ATAQUE ---
+echo [+] Generando cabecera de evidencias...
+echo === REPORTE FORENSE DE SUPERFICIE DE ATAQUE === > evidencia_red.txt
+echo Fecha y Hora del analisis: %date% %time% >> evidencia_red.txt
+echo Ejecutado por: %username% >> evidencia_red.txt
+echo ------------------------------------------------------- >> evidencia_red.txt
+
+echo [+] 1. Listando conexiones de red en estado LISTENING...
+echo [PUERTOS EN ESCUCHA / LISTENING] >> evidencia_red.txt
+:: Filtra de forma estricta los sockets locales que aceptan conexiones entrantes
+netstat -an | findstr /I "LISTENING" >> evidencia_red.txt
+echo ------------------------------------------------------- >> evidencia_red.txt
+
+echo [+] 2. Identificando usuarios locales del sistema...
+echo [USUARIOS LOCALES DETECTADOS] >> evidencia_red.txt
+:: Lista la base de datos SAM local para auditar cuentas persistentes o no autorizadas
+net user >> evidencia_red.txt
+echo ------------------------------------------------------- >> evidencia_red.txt
+
+echo [+] 3. Verificando recursos y carpetas compartidas (Net Share)...
+echo [RECURSOS COMPARTIDOS EN RED] >> evidencia_red.txt
+:: Detecta recursos compartidos (como C$, ADMIN$) que facilitan la exfiltración de datos
+net share >> evidencia_red.txt
+echo ------------------------------------------------------- >> evidencia_red.txt
+
+:: --- PARTE 3: HARDENING (DEFENSA ACTIVA) ---
+echo.
+echo =======================================================
+echo    APLICANDO REGLAS DE HARDENING DE FIREWALL
+echo =======================================================
+echo [+] Bloqueando puerto SMB (445) para mitigar movimiento lateral...
+
+:: Regla de firewall perimetral que bloquea de raíz conexiones entrantes al puerto 445 (SMB)
+:: Esto neutraliza vectores de explotación críticos como EternalBlue (WannaCry)
+netsh advfirewall firewall add rule name="HARDENING_BLOQUEO_SMB_445" dir=in action=block protocol=TCP localport=445
+
+echo.
+echo [ÉXITO] Auditoria completada. Archivo generado: evidencia_red.txt
+echo [ÉXITO] Regla de aislamiento SMB agregada al Firewall.
+echo =======================================================
+pause
